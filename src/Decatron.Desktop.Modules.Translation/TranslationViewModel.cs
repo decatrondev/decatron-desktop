@@ -143,13 +143,20 @@ public sealed partial class TranslationViewModel : ObservableObject
     }
     private bool CanStop() => IsRunning && !IsBusy;
 
+    // Cuando la puerta se cierra, Deepgram todavía no sabe que la frase terminó: necesita
+    // oír silencio para marcar speech_final. Se le mandan 1,5 s de ceros y recién ahí se calla.
+    private static readonly byte[] SilentFrame = new byte[640];
+    private const int SilenceTailFrames = 75; // 75 × 20 ms
+    private int _tailLeft;
+
     private void OnFrame(ReadOnlyMemory<byte> frame)
     {
         var client = _client; var cts = _sessionCts; var cap = _capture;
         if (client == null || cts == null || cts.IsCancellationRequested || cap == null) return;
         var level = cap.Level;
         var pass = _gate.Pass(level);
-        if (pass) _ = client.SendAudioAsync(frame, cts.Token);
+        if (pass) { _tailLeft = SilenceTailFrames; _ = client.SendAudioAsync(frame, cts.Token); }
+        else if (_tailLeft > 0) { _tailLeft--; _ = client.SendAudioAsync(SilentFrame, cts.Token); }
 
         // El medidor se refresca a ~20 fps; los frames llegan a 50/s.
         var now = DateTime.UtcNow;

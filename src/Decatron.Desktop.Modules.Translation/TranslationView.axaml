@@ -1,0 +1,112 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Decatron.Desktop.Modules.Translation"
+             x:Class="Decatron.Desktop.Modules.Translation.TranslationView"
+             x:DataType="vm:TranslationViewModel">
+
+  <ScrollViewer>
+    <StackPanel Margin="28,24" Spacing="18" MaxWidth="720" HorizontalAlignment="Left">
+
+      <StackPanel Spacing="4">
+        <TextBlock Text="Traducción en vivo" Classes="H1" />
+        <TextBlock Classes="Muted" TextWrapping="Wrap"
+                   Text="Tu micrófono se transcribe y se traduce en el servidor. Cada espectador elige en qué idioma escucharte desde la extensión de Decatron; nadie más se entera." />
+      </StackPanel>
+
+      <!-- Estado principal -->
+      <Border Classes="Card">
+        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+          <StackPanel Grid.Column="0" Spacing="6">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <Ellipse Width="10" Height="10" VerticalAlignment="Center"
+                       Classes.On="{Binding IsRunning}" Classes="StatusDot" />
+              <TextBlock FontSize="16" FontWeight="SemiBold"
+                         Text="{Binding IsRunning, Converter={x:Static vm:BoolText.RunningIdle}}" />
+            </StackPanel>
+            <TextBlock Classes="Muted" Text="{Binding LanguagesText, StringFormat='Idiomas ofrecidos: {0}'}" />
+          </StackPanel>
+
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+            <Button Classes="Primary" Content="Iniciar" Command="{Binding StartCommand}" IsVisible="{Binding !IsRunning}" />
+            <Button Classes="Danger" Content="Detener" Command="{Binding StopCommand}" IsVisible="{Binding IsRunning}" />
+          </StackPanel>
+
+          <Border Grid.Row="1" Grid.ColumnSpan="2" Margin="0,14,0,0" Padding="12,8" CornerRadius="8"
+                  IsVisible="{Binding Message, Converter={x:Static ObjectConverters.IsNotNull}}"
+                  Classes="Notice" Classes.Error="{Binding MessageIsError}">
+            <TextBlock Text="{Binding Message}" TextWrapping="Wrap" FontSize="13" />
+          </Border>
+        </Grid>
+      </Border>
+
+      <!-- Micrófono -->
+      <Border Classes="Card">
+        <StackPanel Spacing="12">
+          <TextBlock Text="Micrófono" Classes="H2" />
+          <TextBlock Classes="Muted" TextWrapping="Wrap" IsVisible="{Binding !MicSupported}" Text="{Binding MicUnsupportedReason}" />
+          <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding MicSupported}">
+            <ComboBox Grid.Column="0" ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}"
+                      IsEnabled="{Binding !IsRunning}" HorizontalAlignment="Stretch">
+              <ComboBox.ItemTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding Name}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <Button Grid.Column="1" Margin="8,0,0,0" Content="↻" Command="{Binding RefreshDevicesCommand}" ToolTip.Tip="Volver a buscar micrófonos" />
+          </Grid>
+          <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding MicSupported}">
+            <ProgressBar Grid.Column="0" Minimum="0" Maximum="1" Value="{Binding Level}" Height="8"
+                         Classes="Level" Classes.Voice="{Binding VoiceOpen}" />
+            <TextBlock Grid.Column="1" Margin="10,0,0,0" FontSize="12" Classes="Muted"
+                       Text="{Binding VoiceOpen, Converter={x:Static vm:BoolText.VoiceSilence}}" />
+          </Grid>
+          <CheckBox Content="Iniciar solo al abrir la app si la traducción está activa" IsChecked="{Binding AutoStart}" />
+        </StackPanel>
+      </Border>
+
+      <!-- Sesión -->
+      <Border Classes="Card">
+        <StackPanel Spacing="12">
+          <TextBlock Text="Sesión actual" Classes="H2" />
+          <UniformGrid Columns="4">
+            <StackPanel>
+              <TextBlock Classes="Stat" Text="{Binding SpeechText}" />
+              <TextBlock Classes="Muted" Text="hablado" />
+            </StackPanel>
+            <StackPanel>
+              <TextBlock Classes="Stat" Text="{Binding Segments}" />
+              <TextBlock Classes="Muted" Text="frases" />
+            </StackPanel>
+            <StackPanel>
+              <TextBlock Classes="Stat" Text="{Binding ListenersText}" />
+              <TextBlock Classes="Muted" Text="oyentes" />
+            </StackPanel>
+            <StackPanel>
+              <TextBlock Classes="Stat" Text="{Binding CreditsUsed}" />
+              <TextBlock Classes="Muted" Text="créditos" />
+            </StackPanel>
+          </UniformGrid>
+          <ItemsControl ItemsSource="{Binding Listeners}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Border Classes="Pill" Classes.Active="{Binding Active}" Margin="0,0,8,8">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock Text="{Binding Language}" FontWeight="SemiBold" FontSize="12" />
+                    <TextBlock Text="{Binding Count}" FontSize="12" />
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock Classes="Muted" FontSize="12" TextWrapping="Wrap"
+                     Text="Solo se traduce a un idioma mientras alguien lo esté escuchando. Sin oyentes no se gastan créditos de voz; la transcripción sí corre mientras la sesión esté activa." />
+        </StackPanel>
+      </Border>
+
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

@@ -1,0 +1,84 @@
+name: release
+
+# Tag "v*" ⇒ publica. Mismo esquema que Flowdeck: Velopack empaqueta por canal
+# (win/linux/osx) y el UpdateService de la app busca en los releases de GitHub.
+# Solo Windows tiene captura de micrófono hoy; linux/osx se publican igual para
+# que la vinculación y los módulos futuros se prueben, pero se marcan como beta.
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+            channel: win
+            exe: DecatronDesktop.exe
+            icon: src/Decatron.Desktop/Assets/decatron.ico
+          - os: ubuntu-latest
+            rid: linux-x64
+            channel: linux
+            exe: DecatronDesktop
+            icon: src/Decatron.Desktop/Assets/decatron.png
+          - os: macos-latest
+            rid: osx-arm64
+            channel: osx
+            exe: DecatronDesktop
+            icon: src/Decatron.Desktop/Assets/decatron.png
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - id: version
+        shell: bash
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+      - name: Publicar self-contained (${{ matrix.rid }})
+        run: >
+          dotnet publish src/Decatron.Desktop/Decatron.Desktop.csproj
+          -c Release -r ${{ matrix.rid }} --self-contained
+          -p:Version=${{ steps.version.outputs.version }}
+          -o publish/${{ matrix.rid }}
+      - run: dotnet tool install -g vpk
+      - name: Empaquetar con Velopack (${{ matrix.channel }})
+        shell: bash
+        run: >
+          vpk pack
+          -u DecatronDesktop
+          -v ${{ steps.version.outputs.version }}
+          -p publish/${{ matrix.rid }}
+          -o releases/${{ matrix.channel }}
+          -e ${{ matrix.exe }}
+          --packTitle "Decatron Desktop"
+          --packAuthors "Decatron"
+          --icon ${{ matrix.icon }}
+          -y
+      - uses: actions/upload-artifact@v4
+        with:
+          name: releases-${{ matrix.channel }}
+          path: releases/${{ matrix.channel }}
+          if-no-files-found: error
+
+  publish-release:
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: releases
+          pattern: releases-*
+          merge-multiple: false
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: releases/**/*
+          generate_release_notes: true
+          fail_on_unmatched_files: true

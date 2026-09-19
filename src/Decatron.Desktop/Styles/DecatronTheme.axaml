@@ -1,0 +1,39 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- Tokens de marca Decatron: grafito oscuro + morado (#9146FF, el mismo del dashboard). -->
+  <Color x:Key="Graphite">#0F1115</Color>
+  <Color x:Key="Surface">#171A21</Color>
+  <Color x:Key="SurfaceRaised">#1F232C</Color>
+  <Color x:Key="Line">#2A2F3A</Color>
+
+  <Color x:Key="Ink">#ECEEF2</Color>
+  <Color x:Key="InkMuted">#8B93A5</Color>
+  <Color x:Key="InkFaint">#5B6274</Color>
+
+  <Color x:Key="Accent">#9146FF</Color>
+  <Color x:Key="AccentLight">#A970FF</Color>
+  <Color x:Key="Live">#22C55E</Color>
+  <Color x:Key="Signal">#F5A623</Color>
+  <Color x:Key="Danger">#EF4444</Color>
+
+  <SolidColorBrush x:Key="GraphiteBrush" Color="{StaticResource Graphite}" />
+  <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource Surface}" />
+  <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="{StaticResource SurfaceRaised}" />
+  <SolidColorBrush x:Key="LineBrush" Color="{StaticResource Line}" />
+  <SolidColorBrush x:Key="InkBrush" Color="{StaticResource Ink}" />
+  <SolidColorBrush x:Key="InkMutedBrush" Color="{StaticResource InkMuted}" />
+  <SolidColorBrush x:Key="InkFaintBrush" Color="{StaticResource InkFaint}" />
+  <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource Accent}" />
+  <SolidColorBrush x:Key="AccentLightBrush" Color="{StaticResource AccentLight}" />
+  <SolidColorBrush x:Key="LiveBrush" Color="{StaticResource Live}" />
+  <SolidColorBrush x:Key="SignalBrush" Color="{StaticResource Signal}" />
+  <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource Danger}" />
+
+  <!-- El accent de marca para los controles Fluent que usan el del sistema. -->
+  <Color x:Key="SystemAccentColor">#9146FF</Color>
+  <Color x:Key="SystemAccentColorLight1">#A970FF</Color>
+  <Color x:Key="SystemAccentColorLight2">#BF94FF</Color>
+  <Color x:Key="SystemAccentColorDark1">#7C2FE6</Color>
+  <Color x:Key="SystemAccentColorDark2">#6A22CC</Color>
+</ResourceDictionary>

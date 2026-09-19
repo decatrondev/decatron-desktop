@@ -27,8 +27,8 @@ internal static class Program
         using var guard = new SingleInstanceGuard();
         if (!guard.IsPrimary) return 0;
 
+        // Se verifica y aplica desde App.RunStartupAsync, con la ventana de arranque visible.
         App.Updates = new UpdateService(App.Logging.CreateLogger("Updates"));
-        App.Updates.Start();
 
         try
         {

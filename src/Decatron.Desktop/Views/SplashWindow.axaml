@@ -1,0 +1,32 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Decatron.Desktop.ViewModels"
+        x:Class="Decatron.Desktop.Views.SplashWindow"
+        x:DataType="vm:SplashViewModel"
+        Icon="/Assets/decatron.ico"
+        Title="Decatron Desktop"
+        Width="340" Height="170" CanResize="False"
+        WindowStartupLocation="CenterScreen"
+        ShowInTaskbar="False"
+        WindowDecorations="None"
+        TransparencyLevelHint="Transparent"
+        Background="Transparent">
+
+  <!-- Ventana de arranque: es lo único que ve el usuario mientras se verifica,
+       descarga y aplica una actualización. Nada de chrome nativo. -->
+  <Border Background="{StaticResource GraphiteBrush}"
+          BorderBrush="{StaticResource LineBrush}" BorderThickness="1"
+          CornerRadius="12">
+    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="14">
+      <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
+        <Image Source="/Assets/decatron.png" Width="28" Height="28" />
+        <TextBlock Text="Decatron" FontWeight="SemiBold" FontSize="20" VerticalAlignment="Center" />
+        <TextBlock Text="Desktop" FontSize="20" Foreground="{StaticResource InkMutedBrush}" VerticalAlignment="Center" />
+      </StackPanel>
+      <Border Background="{StaticResource AccentBrush}" Width="36" Height="3" CornerRadius="2" />
+      <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource InkMutedBrush}"
+                 FontSize="12" HorizontalAlignment="Center" TextWrapping="Wrap"
+                 TextAlignment="Center" Width="260" />
+    </StackPanel>
+  </Border>
+</Window>

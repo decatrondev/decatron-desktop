@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Reemplaza la ventana genérica de Velopack ("Instalación de Decatron Desktop /
+    Instalando… / Configurando…") por una propia. Por dentro corre el Setup.exe real
+    que genera vpk (delta-updates, RELEASES, .nupkg: todo eso sigue siendo Velopack),
+    embebido e invocado en modo silencioso, así el usuario solo ve nuestra marca.
+
+    Solo Windows: el .pkg de macOS usa el instalador de Apple (esperado ahí) y el
+    AppImage de Linux no tiene paso de instalación.
+
+    Fuera del .slnx a propósito (igual que en Flowdeck): solo lo compila release.yml
+    después de tener el SetupInner.exe. Con EnableWindowsTargeting se puede compilar
+    (no correr) desde Linux/macOS para validar.
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <AssemblyName>DecatronDesktop-Setup</AssemblyName>
+    <ApplicationIcon>..\Decatron.Desktop\Assets\decatron.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Lo copia release.yml desde la salida de "vpk pack"; no está en el repo. -->
+    <EmbeddedResource Include="SetupInner.exe" Condition="Exists('SetupInner.exe')" />
+  </ItemGroup>
+
+</Project>

@@ -62,6 +62,21 @@ jobs:
           --packAuthors "Decatron"
           --icon ${{ matrix.icon }}
           -y
+      # El Setup.exe de vpk funciona pero muestra la ventana genérica de Velopack.
+      # Decatron.Desktop.Installer es un bootstrap propio que lo embebe y lo corre
+      # en silencio detrás de nuestra ventana; el motor de updates no cambia.
+      - name: Empaquetar instalador propio (solo Windows)
+        if: matrix.channel == 'win'
+        shell: bash
+        run: |
+          cp releases/win/DecatronDesktop-win-Setup.exe src/Decatron.Desktop.Installer/SetupInner.exe
+          dotnet publish src/Decatron.Desktop.Installer/Decatron.Desktop.Installer.csproj \
+            -c Release -r win-x64 --self-contained \
+            -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true \
+            -p:Version=${{ steps.version.outputs.version }} \
+            -o publish-installer
+          cp publish-installer/DecatronDesktop-Setup.exe releases/win/DecatronDesktop-Setup.exe
+          rm releases/win/DecatronDesktop-win-Setup.exe
       - uses: actions/upload-artifact@v4
         with:
           name: releases-${{ matrix.channel }}

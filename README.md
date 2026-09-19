@@ -58,6 +58,11 @@ Un tag `vX.Y.Z` dispara `release.yml`: publica self-contained por plataforma, em
 Velopack por canal (`win`, `linux`, `osx`) y sube todo a un GitHub Release. La app instalada
 revisa ese release al arrancar y cada 6 h, descarga en segundo plano y aplica al cerrar.
 
+En Windows el `DecatronDesktop-Setup.exe` publicado es `src/Decatron.Desktop.Installer`: un
+bootstrap con nuestra ventana que embebe el Setup real de Velopack y lo corre en silencio, para
+no mostrar el instalador genérico. Está fuera del `.slnx` porque solo tiene sentido en el
+pipeline (necesita el `SetupInner.exe` que genera `vpk pack`).
+
 ## Backend
 
 El servidor vive en el repo del bot (`decatrondev/decatron`): `DesktopWsMiddleware`,

@@ -19,6 +19,8 @@ public interface IDesktopConnection
     /// <summary>Config de módulos que mandó el servidor en <c>core/hello</c> (por Id de módulo).</summary>
     IReadOnlyDictionary<string, JsonNode?> Modules { get; }
     event Action? HelloReceived;
+    /// <summary>El servidor volvió a describir un módulo (nombre del canal); <see cref="Modules"/> ya está actualizado.</summary>
+    event Action<string>? ModuleUpdated;
 
     /// <summary>Suscribe a los mensajes de texto de un canal. Devuelve el IDisposable que desuscribe.</summary>
     IDisposable Subscribe(string channel, Action<string, JsonNode> handler);

@@ -39,6 +39,8 @@ public sealed class DesktopConnection : IDesktopConnection, IAsyncDisposable
     public string? Login { get; private set; }
     public IReadOnlyDictionary<string, JsonNode?> Modules => _modules;
     public event Action? HelloReceived;
+    /// <summary>El servidor volvió a describir un módulo (p. ej. el streamer activó la traducción en el dashboard).</summary>
+    public event Action<string>? ModuleUpdated;
     public TimeSpan? Latency { get; private set; }
 
     /// <summary>Último error de conexión legible (401 = token revocado, etc.).</summary>
@@ -202,6 +204,11 @@ public sealed class DesktopConnection : IDesktopConnection, IAsyncDisposable
                     foreach (var (k, v) in mods) _modules[k] = v;
                 State = ConnectionState.Connected;
                 HelloReceived?.Invoke();
+            }
+            else if (type == "module" && j!["name"]?.GetValue<string>() is { Length: > 0 } name)
+            {
+                _modules[name] = j["module"];
+                ModuleUpdated?.Invoke(name);
             }
             else if (type == "pong" && j!["t"] is JsonValue tv && tv.TryGetValue<long>(out var t))
                 Latency = TimeSpan.FromMilliseconds(Stopwatch.GetElapsedTime(t).TotalMilliseconds);

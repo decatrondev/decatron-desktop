@@ -59,6 +59,7 @@ public sealed partial class TranslationViewModel : ObservableObject
         _client.Stopped += (reason, err) => Dispatcher.UIThread.Post(() => OnStopped(reason, err));
         _client.Error += e => Dispatcher.UIThread.Post(() => { IsBusy = false; SetMessage(e, true); });
         ctx.Connection.HelloReceived += () => Dispatcher.UIThread.Post(RefreshFromServer);
+        ctx.Connection.ModuleUpdated += name => { if (name == TranslationClient.Channel) Dispatcher.UIThread.Post(RefreshFromServer); };
         ctx.Connection.StateChanged += st => Dispatcher.UIThread.Post(() =>
         {
             if (st != ConnectionState.Connected && IsRunning) { _ = StopCaptureAsync(); IsRunning = false; SetMessage("Conexión perdida; la sesión se cortó", true); }

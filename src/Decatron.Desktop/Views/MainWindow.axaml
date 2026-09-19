@@ -61,6 +61,7 @@
             </StackPanel>
             <TextBlock Text="{Binding LatencyText}" FontSize="11" Foreground="{StaticResource InkFaintBrush}"
                        IsVisible="{Binding LatencyText, Converter={x:Static ObjectConverters.IsNotNull}}" />
+            <TextBlock Text="{Binding Version, StringFormat='v{0}'}" FontSize="11" Foreground="{StaticResource InkFaintBrush}" />
             <Button Content="Desvincular" Command="{Binding UnlinkCommand}" FontSize="11" Padding="8,4"
                     Background="Transparent" BorderThickness="0" Foreground="{StaticResource InkFaintBrush}" HorizontalAlignment="Left" />
           </StackPanel>

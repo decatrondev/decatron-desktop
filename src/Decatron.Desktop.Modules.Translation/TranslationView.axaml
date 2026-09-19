@@ -102,6 +102,7 @@
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
+          <TextBlock Classes="Muted" FontSize="12" Text="{Binding LastPhraseText, StringFormat='Última frase transcrita: {0}'}" />
           <TextBlock Classes="Muted" FontSize="12" TextWrapping="Wrap"
                      Text="Solo se traduce a un idioma mientras alguien lo esté escuchando. Sin oyentes no se gastan créditos de voz; la transcripción sí corre mientras la sesión esté activa." />
         </StackPanel>

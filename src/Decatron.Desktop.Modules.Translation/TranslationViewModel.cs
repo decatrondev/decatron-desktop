@@ -36,6 +36,9 @@ public sealed partial class TranslationViewModel : ObservableObject
     [ObservableProperty] private string _speechText = "0:00";
     [ObservableProperty] private int _segments;
     [ObservableProperty] private long _creditsUsed;
+    [ObservableProperty] private string _lastPhraseText = "—";
+    private DateTime? _lastSegmentAt;
+    private int _lastSegments;
     [ObservableProperty] private string? _message;
     [ObservableProperty] private bool _messageIsError;
     [ObservableProperty] private AudioDeviceInfo? _selectedDevice;
@@ -178,6 +181,8 @@ public sealed partial class TranslationViewModel : ObservableObject
     private void ApplyStatus(TranslationStatus s)
     {
         IsRunning = s.Active;
+        if (s.Segments != _lastSegments) { _lastSegments = s.Segments; _lastSegmentAt = DateTime.UtcNow; }
+        LastPhraseText = _lastSegmentAt is { } t ? $"hace {(int)(DateTime.UtcNow - t).TotalSeconds} s" : "—";
         Segments = s.Segments;
         CreditsUsed = s.CreditsUsed;
         var ts = TimeSpan.FromSeconds(s.SpeechSeconds);

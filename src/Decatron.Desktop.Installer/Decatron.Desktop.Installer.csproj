@@ -21,6 +21,10 @@
     <AssemblyName>DecatronDesktop-Setup</AssemblyName>
     <ApplicationIcon>..\Decatron.Desktop\Assets\decatron.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Self-contained + WinForms + el Setup embebido pasan de 170 MB sin esto. -->
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <PublishReadyToRun>false</PublishReadyToRun>
+    <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
 
   <ItemGroup>

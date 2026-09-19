@@ -32,7 +32,7 @@ jobs:
             rid: osx-arm64
             channel: osx
             exe: DecatronDesktop
-            icon: src/Decatron.Desktop/Assets/decatron.png
+            icon: src/Decatron.Desktop/Assets/decatron.icns
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4

@@ -11,5 +11,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Decatron.Desktop.Core\Decatron.Desktop.Core.csproj" />
     <ProjectReference Include="..\..\src\Decatron.Desktop.Modules.Translation\Decatron.Desktop.Modules.Translation.csproj" />
+    <ProjectReference Include="..\..\src\Decatron.Desktop.Modules.LolCoach\Decatron.Desktop.Modules.LolCoach.csproj" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,64 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Decatron.Desktop.Modules.LolCoach"
+             x:Class="Decatron.Desktop.Modules.LolCoach.LolCoachView"
+             x:DataType="vm:LolCoachViewModel">
+
+  <ScrollViewer>
+    <StackPanel Margin="28,24" Spacing="18" MaxWidth="720" HorizontalAlignment="Left">
+
+      <StackPanel Spacing="4">
+        <TextBlock Text="Decatron Coach · League of Legends" Classes="H1" />
+        <TextBlock Classes="Muted" TextWrapping="Wrap"
+                   Text="Lee el cliente de LoL en tu PC (lobby, selección de campeón, partida, resultado) y lo manda al overlay al instante. Solo lectura: no acepta colas, no lockea ni toca nada del juego." />
+      </StackPanel>
+
+      <Border Classes="Card">
+        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto">
+          <StackPanel Grid.Column="0" Spacing="6">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <Ellipse Width="10" Height="10" VerticalAlignment="Center" Classes.On="{Binding ClientDetected}" Classes="StatusDot" />
+              <TextBlock FontSize="16" FontWeight="SemiBold" Text="{Binding PhaseText}" />
+            </StackPanel>
+            <TextBlock Classes="Muted" Text="{Binding SummonerText, StringFormat='Invocador: {0}'}" />
+            <TextBlock Classes="Muted" Text="{Binding LinkedText, StringFormat='Cuentas vinculadas en el dashboard: {0}'}" TextWrapping="Wrap" />
+          </StackPanel>
+          <ToggleSwitch Grid.Column="1" IsChecked="{Binding Enabled}" OnContent="Activo" OffContent="Pausado" VerticalAlignment="Top" />
+
+          <Border Grid.Row="1" Grid.ColumnSpan="2" Margin="0,14,0,0" Padding="12,8" CornerRadius="8" Classes="Notice Error"
+                  IsVisible="{Binding !SummonerLinked}">
+            <TextBlock TextWrapping="Wrap" FontSize="13"
+                       Text="La cuenta abierta en el cliente no está vinculada en el dashboard: el overlay no va a mostrar nada. Vincúlala en Overlays → Game Overlays → Cuentas." />
+          </Border>
+          <Border Grid.Row="2" Grid.ColumnSpan="2" Margin="0,14,0,0" Padding="12,8" CornerRadius="8"
+                  IsVisible="{Binding Message, Converter={x:Static ObjectConverters.IsNotNull}}"
+                  Classes="Notice" Classes.Error="{Binding MessageIsError}">
+            <TextBlock Text="{Binding Message}" TextWrapping="Wrap" FontSize="13" />
+          </Border>
+        </Grid>
+      </Border>
+
+      <Border Classes="Card">
+        <StackPanel Spacing="12">
+          <TextBlock Text="Cliente de LoL" Classes="H2" />
+          <TextBlock Classes="Muted" TextWrapping="Wrap"
+                     Text="Se busca solo (instalación estándar de Riot). Si tienes LoL en otra carpeta, pon aquí la ruta de la carpeta 'League of Legends' o de su archivo 'lockfile'." />
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBox Grid.Column="0" Text="{Binding LockfilePath}" Watermark="C:\Riot Games\League of Legends" />
+            <Button Grid.Column="1" Margin="8,0,0,0" Content="Buscar de nuevo" Command="{Binding RescanCommand}" />
+          </Grid>
+          <TextBlock Classes="Muted" FontSize="12" Text="{Binding LastSentText, StringFormat='Último envío al servidor: {0}'}" />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="Card">
+        <StackPanel Spacing="8">
+          <TextBlock Text="Qué ve el overlay" Classes="H2" />
+          <TextBlock Classes="Muted" TextWrapping="Wrap" Text="• Lobby: con quién estás y qué cola. • Buscando partida. • Selección de campeón: picks de tu equipo (el tuyo resaltado), del rival y bans, en tiempo real. • En partida: campeón, rol y cronómetro. • Fin de partida: resultado, KDA, CS, daño y ±LP." />
+          <TextBlock Classes="Muted" TextWrapping="Wrap" Text="Activa los elementos 'Selección de campeón' y 'Fin de partida' en Overlays → Game Overlays → Diseño. El coach con sugerencias (voz, runas, matchup) llega en las siguientes fases." />
+        </StackPanel>
+      </Border>
+
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

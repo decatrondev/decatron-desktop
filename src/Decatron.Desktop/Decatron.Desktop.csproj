@@ -32,5 +32,6 @@
     <ProjectReference Include="..\Decatron.Desktop.Sdk\Decatron.Desktop.Sdk.csproj" />
     <ProjectReference Include="..\Decatron.Desktop.Core\Decatron.Desktop.Core.csproj" />
     <ProjectReference Include="..\Decatron.Desktop.Modules.Translation\Decatron.Desktop.Modules.Translation.csproj" />
+    <ProjectReference Include="..\Decatron.Desktop.Modules.LolCoach\Decatron.Desktop.Modules.LolCoach.csproj" />
   </ItemGroup>
 </Project>

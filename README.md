@@ -7,6 +7,7 @@ módulos.
 | Módulo | Estado | Qué hace |
 |---|---|---|
 | **Traducción en vivo** | ✅ v0.1 | Captura el micrófono y lo manda al servidor, que transcribe, traduce y sintetiza. Cada espectador elige en qué idioma escuchar el stream desde la extensión de Decatron, sin afectar a los demás. |
+| **Coach de LoL** | 🟡 fase 1 | Lee el cliente de LoL (solo lectura: lobby, selección de campeón, partida, resultado) y lo manda al overlay de Game Overlays al instante. Sin IA todavía; las sugerencias, voz y comandos llegan en las fases siguientes (`LOL_COACH_PLAN.md` en el repo del bot). |
 | Asistente de LoL | 🔜 | Lee el cliente de League of Legends en local (selección de campeón, partida) y muestra recomendaciones del backend, con voz opcional. |
 
 ## Cómo funciona
@@ -35,6 +36,7 @@ src/
   Decatron.Desktop.Sdk/                  contratos: IModule, IDesktopConnection, IAudioCapture
   Decatron.Desktop.Core/                 conexión WS, vinculación, ajustes/secretos, captura de audio
   Decatron.Desktop.Modules.Translation/  primer módulo
+  Decatron.Desktop.Modules.LolCoach/     coach de LoL: LcuLocator (lockfile) + LcuClient (GET al LCU) + LolClientWatcher (fases)
   Decatron.Desktop/                      shell Avalonia: chrome propio, barra de módulos, Velopack
 tests/
   Decatron.Desktop.Tests/                servidor falso + tests de conexión, canal, audio y vinculación

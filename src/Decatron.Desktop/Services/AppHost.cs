@@ -3,6 +3,7 @@ using Decatron.Desktop.Core.Audio;
 using Decatron.Desktop.Core.Connection;
 using Decatron.Desktop.Core.Linking;
 using Decatron.Desktop.Core.Settings;
+using Decatron.Desktop.Modules.LolCoach;
 using Decatron.Desktop.Modules.Translation;
 using Decatron.Desktop.Sdk;
 using Microsoft.Extensions.Logging;
@@ -41,6 +42,7 @@ public sealed class AppHost : IAsyncDisposable
         Modules = new IModule[]
         {
             new TranslationModule(),
+            new LolCoachModule(),
         };
     }
 

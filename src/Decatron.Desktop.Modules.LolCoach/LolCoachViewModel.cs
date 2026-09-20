@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -30,7 +31,13 @@ public sealed partial class LolCoachViewModel : ObservableObject
     [ObservableProperty] private bool _messageIsError;
     [ObservableProperty] private string _linkedText = "";
     [ObservableProperty] private string _matchText = "";
+    [ObservableProperty] private bool _coachEnabled;
+    [ObservableProperty] private string _coachName = "Coach";
+    [ObservableProperty] private string _coachStatusText = "";
     private bool _serverVerdict;
+
+    public ObservableCollection<CoachRow> CoachMessages { get; } = new();
+    public sealed record CoachRow(string Title, string Comment, string? Details, string Time);
 
     public void Attach(ModuleContext ctx)
     {
@@ -46,6 +53,15 @@ public sealed partial class LolCoachViewModel : ObservableObject
             MatchText = !ClientDetected ? "" : m != null ? $"Vinculada como {m.Name}" : $"No coincide con ninguna cuenta vinculada (PUUID del cliente: {Short(puuid)})";
         });
         _client.Error += e => Dispatcher.UIThread.Post(() => SetMessage(e, true));
+        _client.Coach += m => Dispatcher.UIThread.Post(() =>
+        {
+            var title = m.Kind switch { "pick" => "Pick / ban", "my_turn" => "¡Tu turno!", "final" => "Plan final", "postgame" => "Post-partida", _ => m.Kind };
+            if (m.Suggestion != null) title += $" → {m.Suggestion}";
+            var details = string.Join("\n", new[] { m.Matchup, string.Join(" · ", new[] { m.Runes, m.Spells, m.Build }.Where(x => !string.IsNullOrWhiteSpace(x))) }
+                .Concat(m.Tips.Select(t => "• " + t)).Where(x => !string.IsNullOrWhiteSpace(x)));
+            CoachMessages.Insert(0, new CoachRow($"{m.CoachName} · {title}", m.Comment, details.Length == 0 ? null : details, m.At.ToString("HH:mm:ss")));
+            while (CoachMessages.Count > 12) CoachMessages.RemoveAt(CoachMessages.Count - 1);
+        });
         ctx.Connection.HelloReceived += () => Dispatcher.UIThread.Post(RefreshFromServer);
         ctx.Connection.ModuleUpdated += n => { if (n == LolCoachClient.Channel) Dispatcher.UIThread.Post(RefreshFromServer); };
         ctx.Connection.StateChanged += st => Dispatcher.UIThread.Post(() =>
@@ -73,6 +89,9 @@ public sealed partial class LolCoachViewModel : ObservableObject
     {
         if (_client == null) return;
         IsEnabledOnServer = _client.IsEnabled;
+        CoachEnabled = _client.CoachEnabled;
+        CoachName = _client.CoachName;
+        CoachStatusText = CoachEnabled ? $"{CoachName} está activo: comenta la selección de campeón y opina al terminar." : "El coach con IA está apagado. Actívalo en el dashboard (Funciones → Decatron Coach · LoL).";
         RefreshLinked();
         if (!IsEnabledOnServer)
             SetMessage("Vincula tu cuenta de LoL en el dashboard (Overlays → Game Overlays → Cuentas) para que el overlay muestre lo que pasa en el cliente.", false);

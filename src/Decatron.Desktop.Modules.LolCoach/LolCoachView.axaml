@@ -56,10 +56,37 @@
       </Border>
 
       <Border Classes="Card">
+        <StackPanel Spacing="10">
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <Ellipse Width="10" Height="10" VerticalAlignment="Center" Classes.On="{Binding CoachEnabled}" Classes="StatusDot" />
+            <TextBlock Text="{Binding CoachName, StringFormat='Coach: {0}'}" Classes="H2" />
+          </StackPanel>
+          <TextBlock Classes="Muted" TextWrapping="Wrap" Text="{Binding CoachStatusText}" />
+          <ItemsControl ItemsSource="{Binding CoachMessages}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Border Classes="Pill" Margin="0,0,0,8" Padding="12,8" HorizontalAlignment="Stretch">
+                  <StackPanel Spacing="3">
+                    <Grid ColumnDefinitions="*,Auto">
+                      <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="12" />
+                      <TextBlock Grid.Column="1" Text="{Binding Time}" Classes="Muted" FontSize="11" />
+                    </Grid>
+                    <TextBlock Text="{Binding Comment}" TextWrapping="Wrap" FontSize="13" />
+                    <TextBlock Text="{Binding Details}" TextWrapping="Wrap" FontSize="12" Classes="Muted"
+                               IsVisible="{Binding Details, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="Card">
         <StackPanel Spacing="8">
           <TextBlock Text="Qué ve el overlay" Classes="H2" />
           <TextBlock Classes="Muted" TextWrapping="Wrap" Text="• Lobby: con quién estás y qué cola. • Buscando partida. • Selección de campeón: picks de tu equipo (el tuyo resaltado), del rival y bans, en tiempo real. • En partida: campeón, rol y cronómetro. • Fin de partida: resultado, KDA, CS, daño y ±LP." />
-          <TextBlock Classes="Muted" TextWrapping="Wrap" Text="Activa los elementos 'Selección de campeón' y 'Fin de partida' en Overlays → Game Overlays → Diseño. El coach con sugerencias (voz, runas, matchup) llega en las siguientes fases." />
+          <TextBlock Classes="Muted" TextWrapping="Wrap" Text="Activa los elementos 'Selección de campeón', 'Fin de partida' y 'Coach dice' en Overlays → Game Overlays → Diseño. La voz del coach llega en la siguiente fase." />
         </StackPanel>
       </Border>
 

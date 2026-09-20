@@ -52,7 +52,17 @@ public partial class App : Application
             Updates.UpdateAvailable += v => Dispatcher.UIThread.Post(() => vm.UpdateBanner = $"Versión {v} disponible. Se instala la próxima vez que abras Decatron Desktop.");
             Updates.StartBackgroundNotifier();
         }
-        desktop.ShutdownRequested += (_, _) => _host.DisposeAsync().AsTask().GetAwaiter().GetResult();
+        // Cerrar en serio. Esperar la limpieza (mic, cliente de LoL, WebSocket) como mucho
+        // 3 s y sin bloquear el hilo de UI (los módulos publican estado por Dispatcher al
+        // parar: esperarlos sincrónicamente aquí era un interbloqueo). Y al terminar el
+        // loop, Environment.Exit: si quedó algún hilo en primer plano (captura de audio,
+        // HttpClient del LCU), el proceso seguía vivo tras cerrar la ventana.
+        desktop.ShutdownRequested += (_, _) =>
+        {
+            try { Task.Run(() => _host.DisposeAsync().AsTask()).Wait(TimeSpan.FromSeconds(3)); }
+            catch (Exception ex) { Logging.CreateLogger("App").LogWarning(ex, "limpieza al cerrar"); }
+        };
+        desktop.Exit += (_, _) => Environment.Exit(0);
         desktop.MainWindow = main;
         main.Show();
         splash.Close();

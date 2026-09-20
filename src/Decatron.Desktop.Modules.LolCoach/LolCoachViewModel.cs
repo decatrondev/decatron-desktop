@@ -29,6 +29,8 @@ public sealed partial class LolCoachViewModel : ObservableObject
     [ObservableProperty] private string? _message;
     [ObservableProperty] private bool _messageIsError;
     [ObservableProperty] private string _linkedText = "";
+    [ObservableProperty] private string _matchText = "";
+    private bool _serverVerdict;
 
     public void Attach(ModuleContext ctx)
     {
@@ -36,6 +38,13 @@ public sealed partial class LolCoachViewModel : ObservableObject
         _log = ctx.LoggerFactory.CreateLogger("LolCoach");
         _client = new LolCoachClient(ctx.Connection);
         _client.AccountsChanged += _ => Dispatcher.UIThread.Post(RefreshLinked);
+        _client.Matched += (m, puuid) => Dispatcher.UIThread.Post(() =>
+        {
+            // El servidor es quien decide (cruza por PUUID y por nombre#tag): manda sobre el cálculo local.
+            _serverVerdict = true;
+            SummonerLinked = m != null || !ClientDetected;
+            MatchText = !ClientDetected ? "" : m != null ? $"Vinculada como {m.Name}" : $"No coincide con ninguna cuenta vinculada (PUUID del cliente: {Short(puuid)})";
+        });
         _client.Error += e => Dispatcher.UIThread.Post(() => SetMessage(e, true));
         ctx.Connection.HelloReceived += () => Dispatcher.UIThread.Post(RefreshFromServer);
         ctx.Connection.ModuleUpdated += n => { if (n == LolCoachClient.Channel) Dispatcher.UIThread.Post(RefreshFromServer); };
@@ -74,13 +83,18 @@ public sealed partial class LolCoachViewModel : ObservableObject
     {
         var linked = _client?.Linked ?? Array.Empty<LinkedLolAccount>();
         LinkedText = linked.Count == 0 ? "ninguna" : string.Join(", ", linked.Select(a => a.Name));
+        if (_serverVerdict) return;
         var puuid = _watcher?.Summoner?.Puuid;
-        SummonerLinked = string.IsNullOrEmpty(puuid) || linked.Any(a => string.Equals(a.Puuid, puuid, StringComparison.OrdinalIgnoreCase));
+        SummonerLinked = string.IsNullOrEmpty(puuid) || linked.Count == 0 || linked.Any(a => string.Equals(a.Puuid, puuid, StringComparison.OrdinalIgnoreCase));
     }
+
+    private static string Short(string? puuid) => string.IsNullOrEmpty(puuid) ? "—" : puuid.Length > 12 ? puuid[..8] + "…" + puuid[^4..] : puuid;
 
     private void OnClientChanged(bool connected, LcuSummoner? s)
     {
         ClientDetected = connected;
+        _serverVerdict = false;
+        MatchText = connected ? "Comprobando con el servidor…" : "";
         SummonerText = s == null ? "—" : string.IsNullOrEmpty(s.TagLine) ? s.GameName : $"{s.GameName}#{s.TagLine}";
         PhaseText = connected ? "En el cliente" : "Sin cliente";
         RefreshLinked();
@@ -126,12 +140,14 @@ public sealed partial class LolCoachViewModel : ObservableObject
         _ctx?.Settings.Set("lockfilePath", value ?? ""); _ = _ctx?.Settings.SaveAsync();
     }
 
+    /// <summary>Vuelve a buscar el cliente y a cruzar la cuenta con el servidor (tras cambiar de cuenta en LoL o vincular una nueva).</summary>
     [RelayCommand]
     private async Task RescanAsync()
     {
         if (_watcher == null) return;
         await _watcher.StopAsync();
-        if (Enabled) _watcher.Start();
+        Enabled = true;
+        _watcher.Start();
     }
 
     private void SetMessage(string? m, bool error) { Message = m; MessageIsError = error; }

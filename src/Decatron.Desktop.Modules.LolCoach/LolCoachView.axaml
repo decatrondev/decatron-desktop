@@ -21,14 +21,18 @@
               <TextBlock FontSize="16" FontWeight="SemiBold" Text="{Binding PhaseText}" />
             </StackPanel>
             <TextBlock Classes="Muted" Text="{Binding SummonerText, StringFormat='Invocador: {0}'}" />
+            <TextBlock Classes="Muted" Text="{Binding MatchText}" TextWrapping="Wrap" IsVisible="{Binding MatchText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
             <TextBlock Classes="Muted" Text="{Binding LinkedText, StringFormat='Cuentas vinculadas en el dashboard: {0}'}" TextWrapping="Wrap" />
           </StackPanel>
-          <ToggleSwitch Grid.Column="1" IsChecked="{Binding Enabled}" OnContent="Activo" OffContent="Pausado" VerticalAlignment="Top" />
+          <StackPanel Grid.Column="1" Spacing="8" VerticalAlignment="Top">
+            <ToggleSwitch IsChecked="{Binding Enabled}" OnContent="Activo" OffContent="Pausado" />
+            <Button Content="Detectar cuenta" Command="{Binding RescanCommand}" ToolTip.Tip="Vuelve a buscar el cliente de LoL y a comprobar la cuenta con el servidor" />
+          </StackPanel>
 
           <Border Grid.Row="1" Grid.ColumnSpan="2" Margin="0,14,0,0" Padding="12,8" CornerRadius="8" Classes="Notice Error"
                   IsVisible="{Binding !SummonerLinked}">
             <TextBlock TextWrapping="Wrap" FontSize="13"
-                       Text="La cuenta abierta en el cliente no está vinculada en el dashboard: el overlay no va a mostrar nada. Vincúlala en Overlays → Game Overlays → Cuentas." />
+                       Text="La cuenta abierta en el cliente no coincide con ninguna vinculada en el dashboard: el overlay no va a mostrar nada. Vincúlala en Overlays → Game Overlays → Cuentas y pulsa 'Detectar cuenta'." />
           </Border>
           <Border Grid.Row="2" Grid.ColumnSpan="2" Margin="0,14,0,0" Padding="12,8" CornerRadius="8"
                   IsVisible="{Binding Message, Converter={x:Static ObjectConverters.IsNotNull}}"
@@ -45,7 +49,7 @@
                      Text="Se busca solo (instalación estándar de Riot). Si tienes LoL en otra carpeta, pon aquí la ruta de la carpeta 'League of Legends' o de su archivo 'lockfile'." />
           <Grid ColumnDefinitions="*,Auto">
             <TextBox Grid.Column="0" Text="{Binding LockfilePath}" Watermark="C:\Riot Games\League of Legends" />
-            <Button Grid.Column="1" Margin="8,0,0,0" Content="Buscar de nuevo" Command="{Binding RescanCommand}" />
+            <Button Grid.Column="1" Margin="8,0,0,0" Content="Detectar cuenta" Command="{Binding RescanCommand}" />
           </Grid>
           <TextBlock Classes="Muted" FontSize="12" Text="{Binding LastSentText, StringFormat='Último envío al servidor: {0}'}" />
         </StackPanel>

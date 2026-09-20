@@ -58,7 +58,8 @@ public sealed class LolClientWatcher : IAsyncDisposable
         _cts.Cancel();
         try { if (_loop != null) await _loop; } catch { }
         _loop = null; _cts = null;
-        SetConnected(false, null);
+        // Soltar el cliente: al volver a arrancar hay que redetectarlo (y re-avisar) desde cero.
+        ResetClient();
     }
 
     public async ValueTask DisposeAsync() => await StopAsync();

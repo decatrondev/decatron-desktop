@@ -17,6 +17,8 @@ public sealed class LolCoachClient : IDisposable
     private readonly IDisposable _sub;
 
     public event Action<IReadOnlyList<LinkedLolAccount>>? AccountsChanged;
+    /// <summary>Veredicto del servidor sobre la cuenta abierta: la vinculada que coincide (por PUUID o nombre#tag), o null.</summary>
+    public event Action<LinkedLolAccount?, string?>? Matched;
     public event Action<string>? Acked;
     public event Action<string>? Error;
 
@@ -52,7 +54,15 @@ public sealed class LolCoachClient : IDisposable
     {
         switch (type)
         {
-            case "accounts": ApplyLinked(msg["linked"]); break;
+            case "accounts":
+                ApplyLinked(msg["linked"]);
+                if (msg.AsObject().ContainsKey("summonerPuuid"))
+                {
+                    var m = msg["matched"] as JsonObject;
+                    Matched?.Invoke(m == null ? null : new LinkedLolAccount(m["puuid"]?.GetValue<string>() ?? "", m["name"]?.GetValue<string>() ?? "", m["region"]?.GetValue<string>()),
+                        msg["summonerPuuid"]?.GetValue<string>());
+                }
+                break;
             case "ack": Acked?.Invoke(msg["phase"]?.GetValue<string>() ?? ""); break;
             case "error": Error?.Invoke(msg["message"]?.GetValue<string>() ?? "Error"); break;
         }

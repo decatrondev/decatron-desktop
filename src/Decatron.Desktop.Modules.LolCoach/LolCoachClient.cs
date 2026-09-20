@@ -23,6 +23,9 @@ public sealed class LolCoachClient : IDisposable
     public event Action<string>? Acked;
     /// <summary>El coach (IA) dijo algo: comentario de pick, sugerencia en tu turno, plan final o resumen post-partida.</summary>
     public event Action<CoachMessage>? Coach;
+    /// <summary>Clip de voz del coach (MP3), o el motivo por el que no vino (no_credits, tts_failed, voice_unavailable).</summary>
+    public event Action<string, byte[]?, string?>? CoachAudio;
+    public bool VoiceEnabled => _conn.Modules.TryGetValue(Channel, out var m) && m?["coach"]?["voice"]?.GetValue<bool>() == true;
     public event Action<string>? Error;
 
     public bool IsAvailable => _conn.Modules.TryGetValue(Channel, out var m) && m?["available"]?.GetValue<bool>() == true;
@@ -70,6 +73,14 @@ public sealed class LolCoachClient : IDisposable
                 }
                 break;
             case "ack": Acked?.Invoke(msg["phase"]?.GetValue<string>() ?? ""); break;
+            case "coach-audio":
+            {
+                var data = msg["data"]?.GetValue<string>();
+                byte[]? bytes = null;
+                if (!string.IsNullOrEmpty(data)) { try { bytes = Convert.FromBase64String(data); } catch { bytes = null; } }
+                CoachAudio?.Invoke(msg["kind"]?.GetValue<string>() ?? "", bytes, msg["error"]?.GetValue<string>());
+                break;
+            }
             case "coach":
                 Coach?.Invoke(new CoachMessage(
                     msg["kind"]?.GetValue<string>() ?? "", msg["comment"]?.GetValue<string>() ?? "",

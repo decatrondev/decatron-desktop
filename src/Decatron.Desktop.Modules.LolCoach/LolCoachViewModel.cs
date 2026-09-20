@@ -34,7 +34,17 @@ public sealed partial class LolCoachViewModel : ObservableObject
     [ObservableProperty] private bool _coachEnabled;
     [ObservableProperty] private string _coachName = "Coach";
     [ObservableProperty] private string _coachStatusText = "";
+    [ObservableProperty] private bool _voiceEnabledOnServer;
+    [ObservableProperty] private bool _playerSupported = true;
+    [ObservableProperty] private bool _canPickOutput;
+    [ObservableProperty] private AudioDeviceInfo? _selectedOutput;
+    [ObservableProperty] private double _volume = 0.9;
+    [ObservableProperty] private bool _speaking;
+    [ObservableProperty] private string _voiceText = "";
+    private CancellationTokenSource? _playCts;
     private bool _serverVerdict;
+
+    public ObservableCollection<AudioDeviceInfo> Outputs { get; } = new();
 
     public ObservableCollection<CoachRow> CoachMessages { get; } = new();
     public sealed record CoachRow(string Title, string Comment, string? Details, string Time);
@@ -62,6 +72,12 @@ public sealed partial class LolCoachViewModel : ObservableObject
             CoachMessages.Insert(0, new CoachRow($"{m.CoachName} · {title}", m.Comment, details.Length == 0 ? null : details, m.At.ToString("HH:mm:ss")));
             while (CoachMessages.Count > 12) CoachMessages.RemoveAt(CoachMessages.Count - 1);
         });
+        _client.CoachAudio += (kind, bytes, error) => Dispatcher.UIThread.Post(() => OnCoachAudio(kind, bytes, error));
+        PlayerSupported = ctx.Player.IsSupported;
+        RefreshOutputs();
+        Volume = ctx.Settings.Get<double?>("volume") ?? 0.9;
+        var savedOut = ctx.Settings.Get<string>("outputId");
+        SelectedOutput = Outputs.FirstOrDefault(d => d.Id == savedOut) ?? Outputs.FirstOrDefault(d => d.IsDefault) ?? Outputs.FirstOrDefault();
         ctx.Connection.HelloReceived += () => Dispatcher.UIThread.Post(RefreshFromServer);
         ctx.Connection.ModuleUpdated += n => { if (n == LolCoachClient.Channel) Dispatcher.UIThread.Post(RefreshFromServer); };
         ctx.Connection.StateChanged += st => Dispatcher.UIThread.Post(() =>
@@ -92,6 +108,8 @@ public sealed partial class LolCoachViewModel : ObservableObject
         CoachEnabled = _client.CoachEnabled;
         CoachName = _client.CoachName;
         CoachStatusText = CoachEnabled ? $"{CoachName} está activo: comenta la selección de campeón y opina al terminar." : "El coach con IA está apagado. Actívalo en el dashboard (Funciones → Decatron Coach · LoL).";
+        VoiceEnabledOnServer = _client.VoiceEnabled;
+        VoiceText = VoiceEnabledOnServer ? "La voz está activa: suena por el dispositivo elegido abajo." : "Voz apagada. Se activa en el dashboard (Decatron Coach → Voz del coach).";
         RefreshLinked();
         if (!IsEnabledOnServer)
             SetMessage("Vincula tu cuenta de LoL en el dashboard (Overlays → Game Overlays → Cuentas) para que el overlay muestre lo que pasa en el cliente.", false);
@@ -160,6 +178,64 @@ public sealed partial class LolCoachViewModel : ObservableObject
     }
 
     /// <summary>Vuelve a buscar el cliente y a cruzar la cuenta con el servidor (tras cambiar de cuenta en LoL o vincular una nueva).</summary>
+    private void RefreshOutputs()
+    {
+        Outputs.Clear();
+        foreach (var d in _ctx?.Player.ListOutputDevices() ?? Array.Empty<AudioDeviceInfo>()) Outputs.Add(d);
+        CanPickOutput = Outputs.Count > 0;
+    }
+
+    [RelayCommand]
+    private void RefreshOutputDevices()
+    {
+        var current = SelectedOutput?.Id;
+        RefreshOutputs();
+        SelectedOutput = Outputs.FirstOrDefault(d => d.Id == current) ?? Outputs.FirstOrDefault(d => d.IsDefault) ?? Outputs.FirstOrDefault();
+    }
+
+    partial void OnSelectedOutputChanged(AudioDeviceInfo? value)
+    {
+        _ctx?.Settings.Set("outputId", value?.Id ?? ""); _ = _ctx?.Settings.SaveAsync();
+    }
+
+    partial void OnVolumeChanged(double value)
+    {
+        _ctx?.Settings.Set("volume", value); _ = _ctx?.Settings.SaveAsync();
+    }
+
+    private void OnCoachAudio(string kind, byte[]? bytes, string? error)
+    {
+        if (bytes == null)
+        {
+            if (error == "no_credits") SetMessage("Sin créditos TTS para la voz del coach: sigue en texto. Recarga créditos en el dashboard.", true);
+            else if (error != null) _log?.LogWarning("voz del coach: {Error}", error);
+            return;
+        }
+        _lastClip = bytes;
+        _ = PlayAsync(bytes);
+    }
+
+    [RelayCommand]
+    private async Task ReplayLastAsync() { if (_lastClip != null) await PlayAsync(_lastClip); }
+
+    private async Task PlayAsync(byte[] mp3)
+    {
+        if (_ctx == null || !_ctx.Player.IsSupported) return;
+        _playCts?.Cancel();
+        var cts = _playCts = new CancellationTokenSource();
+        Speaking = true;
+        try { await _ctx.Player.PlayAsync(mp3, SelectedOutput?.Id, (float)Volume, cts.Token); }
+        catch (OperationCanceledException) { }
+        catch (Exception ex) { _log?.LogWarning(ex, "reproduciendo voz del coach"); SetMessage("No se pudo reproducir la voz: " + ex.Message, true); }
+        finally { if (ReferenceEquals(_playCts, cts)) Speaking = false; }
+    }
+
+    /// <summary>Prueba de audio local: un tono corto no depende del servidor ni gasta créditos… pero un MP3 hay que generarlo; se usa el último clip recibido.</summary>
+    private byte[]? _lastClip;
+
+    [RelayCommand]
+    private void StopSpeaking() => _playCts?.Cancel();
+
     [RelayCommand]
     private async Task RescanAsync()
     {

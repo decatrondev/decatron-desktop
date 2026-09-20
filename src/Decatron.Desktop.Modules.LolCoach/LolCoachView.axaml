@@ -83,10 +83,39 @@
       </Border>
 
       <Border Classes="Card">
+        <StackPanel Spacing="12">
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <Ellipse Width="10" Height="10" VerticalAlignment="Center" Classes.On="{Binding Speaking}" Classes="StatusDot" />
+            <TextBlock Text="Voz del coach" Classes="H2" />
+          </StackPanel>
+          <TextBlock Classes="Muted" TextWrapping="Wrap" Text="{Binding VoiceText}" />
+          <TextBlock Classes="Muted" TextWrapping="Wrap" IsVisible="{Binding !PlayerSupported}" Text="La reproducción de audio no está disponible en este sistema." />
+          <StackPanel Spacing="10" IsVisible="{Binding PlayerSupported}">
+            <TextBlock Classes="Muted" TextWrapping="Wrap"
+                       Text="Elige por dónde suena: tus auriculares (solo tú lo oyes) o el dispositivo que captura OBS (lo oye el chat)." IsVisible="{Binding CanPickOutput}" />
+            <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding CanPickOutput}">
+              <ComboBox Grid.Column="0" ItemsSource="{Binding Outputs}" SelectedItem="{Binding SelectedOutput}" HorizontalAlignment="Stretch">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate><TextBlock Text="{Binding Name}" /></DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+              <Button Grid.Column="1" Margin="8,0,0,0" Content="↻" Command="{Binding RefreshOutputDevicesCommand}" ToolTip.Tip="Volver a buscar dispositivos de salida" />
+            </Grid>
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+              <TextBlock Classes="Muted" VerticalAlignment="Center" Text="Volumen" />
+              <Slider Grid.Column="1" Margin="12,0" Minimum="0" Maximum="1" Value="{Binding Volume}" />
+              <Button Grid.Column="2" Content="Repetir último" Command="{Binding ReplayLastCommand}" Margin="0,0,8,0" />
+              <Button Grid.Column="3" Content="Callar" Command="{Binding StopSpeakingCommand}" Classes="Danger" IsVisible="{Binding Speaking}" />
+            </Grid>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="Card">
         <StackPanel Spacing="8">
           <TextBlock Text="Qué ve el overlay" Classes="H2" />
           <TextBlock Classes="Muted" TextWrapping="Wrap" Text="• Lobby: con quién estás y qué cola. • Buscando partida. • Selección de campeón: picks de tu equipo (el tuyo resaltado), del rival y bans, en tiempo real. • En partida: campeón, rol y cronómetro. • Fin de partida: resultado, KDA, CS, daño y ±LP." />
-          <TextBlock Classes="Muted" TextWrapping="Wrap" Text="Activa los elementos 'Selección de campeón', 'Fin de partida' y 'Coach dice' en Overlays → Game Overlays → Diseño. La voz del coach llega en la siguiente fase." />
+          <TextBlock Classes="Muted" TextWrapping="Wrap" Text="Activa los elementos 'Selección de campeón', 'Fin de partida' y 'Coach dice' en Overlays → Game Overlays → Diseño. La voz se activa en el dashboard (Decatron Coach → Voz)." />
         </StackPanel>
       </Border>
 

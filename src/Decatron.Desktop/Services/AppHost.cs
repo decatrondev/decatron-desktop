@@ -26,6 +26,7 @@ public sealed class AppHost : IAsyncDisposable
     public DesktopConnection Connection { get; }
     public LinkService Link { get; }
     public IAudioCaptureFactory Audio { get; } = new AudioCaptureFactory();
+    public IAudioPlayer Player { get; } = new AudioPlayer();
     public IReadOnlyList<IModule> Modules { get; }
 
     private readonly ILogger _log;
@@ -64,6 +65,7 @@ public sealed class AppHost : IAsyncDisposable
                     Connection = Connection,
                     Settings = Settings.ForModule(m.Id),
                     Audio = Audio,
+                    Player = Player,
                     LoggerFactory = LoggerFactory,
                     AppVersion = Version,
                 }, CancellationToken.None);

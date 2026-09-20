@@ -25,3 +25,18 @@ public interface IAudioCaptureFactory
     IReadOnlyList<AudioDeviceInfo> ListInputDevices();
     IAudioCapture Create(string? deviceId);
 }
+
+/// <summary>
+/// Reproducción de clips cortos (MP3) — la voz del coach. Un clip a la vez: si llega
+/// otro mientras suena, se encola. La implementación (WASAPI/MediaFoundation en
+/// Windows, reproductor del sistema en macOS/Linux) vive en Core.
+/// </summary>
+public interface IAudioPlayer
+{
+    bool IsSupported { get; }
+    string? UnsupportedReason { get; }
+    /// <summary>Dispositivos de salida (vacío donde no se puede elegir).</summary>
+    IReadOnlyList<AudioDeviceInfo> ListOutputDevices();
+    /// <summary>Reproduce y espera a que termine. deviceId null = el predeterminado.</summary>
+    Task PlayAsync(byte[] mp3, string? deviceId, float volume, CancellationToken ct);
+}

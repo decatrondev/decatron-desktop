@@ -8,6 +8,7 @@ public sealed class ModuleContext
     public required IDesktopConnection Connection { get; init; }
     public required IModuleSettings Settings { get; init; }
     public required IAudioCaptureFactory Audio { get; init; }
+    public required IAudioPlayer Player { get; init; }
     public required ILoggerFactory LoggerFactory { get; init; }
     public required string AppVersion { get; init; }
 }

@@ -69,7 +69,7 @@
       <Border Classes="Card">
         <StackPanel Spacing="12">
           <TextBlock Text="Sesión actual" Classes="H2" />
-          <UniformGrid Columns="4">
+          <UniformGrid Columns="5">
             <StackPanel>
               <TextBlock Classes="Stat" Text="{Binding SpeechText}" />
               <TextBlock Classes="Muted" Text="hablado" />
@@ -84,7 +84,11 @@
             </StackPanel>
             <StackPanel>
               <TextBlock Classes="Stat" Text="{Binding CreditsUsed}" />
-              <TextBlock Classes="Muted" Text="créditos" />
+              <TextBlock Classes="Muted" Text="créditos usados" />
+            </StackPanel>
+            <StackPanel>
+              <TextBlock Classes="Stat" Text="{Binding CreditsLeftText}" />
+              <TextBlock Classes="Muted" Text="saldo" />
             </StackPanel>
           </UniformGrid>
           <ItemsControl ItemsSource="{Binding Listeners}">

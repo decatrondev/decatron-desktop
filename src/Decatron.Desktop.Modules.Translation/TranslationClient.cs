@@ -26,6 +26,10 @@ public sealed class TranslationClient : IDisposable
 
     public bool IsAvailable => _conn.Modules.TryGetValue(Channel, out var m) && m?["available"]?.GetValue<bool>() == true;
     public bool IsEnabled => _conn.Modules.TryGetValue(Channel, out var m) && m?["enabled"]?.GetValue<bool>() == true;
+    /// <summary>Saldo del canal según el último hello/module/status. null = aún no se sabe.</summary>
+    public CreditBalance? Balance { get; private set; }
+    public event Action<CreditBalance>? BalanceChanged;
+
     public IReadOnlyList<string> ConfiguredLanguages =>
         _conn.Modules.TryGetValue(Channel, out var m) && m?["languages"] is JsonArray a
             ? a.Select(x => x?.GetValue<string>() ?? "").Where(x => x.Length > 0).ToList()
@@ -35,6 +39,20 @@ public sealed class TranslationClient : IDisposable
     {
         _conn = conn;
         _sub = conn.Subscribe(Channel, OnMessage);
+        conn.HelloReceived += RefreshBalanceFromModule;
+        conn.ModuleUpdated += n => { if (n == Channel) RefreshBalanceFromModule(); };
+    }
+
+    private void RefreshBalanceFromModule()
+    {
+        if (_conn.Modules.TryGetValue(Channel, out var m)) ApplyBalance(m?["credits"]);
+    }
+
+    private void ApplyBalance(JsonNode? c)
+    {
+        if (c is not JsonObject o) return;
+        Balance = new CreditBalance(o["available"]?.GetValue<long>() ?? 0, o["unlimited"]?.GetValue<bool>() ?? false);
+        BalanceChanged?.Invoke(Balance);
     }
 
     public Task StartAsync(CancellationToken ct) => _conn.SendAsync(Channel, "start", null, ct);
@@ -46,10 +64,12 @@ public sealed class TranslationClient : IDisposable
         switch (type)
         {
             case "started":
+                ApplyBalance(msg["credits"]);
                 Started?.Invoke();
                 if (Parse(msg["session"]) is { } s0) StatusChanged?.Invoke(s0);
                 break;
             case "status":
+                ApplyBalance(msg["credits"]);
                 if (Parse(msg["session"]) is { } s1) StatusChanged?.Invoke(s1);
                 break;
             case "stopped":
@@ -80,3 +100,5 @@ public sealed class TranslationClient : IDisposable
 
     public void Dispose() => _sub.Dispose();
 }
+
+public sealed record CreditBalance(long Available, bool Unlimited);

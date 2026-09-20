@@ -36,6 +36,7 @@ public sealed partial class TranslationViewModel : ObservableObject
     [ObservableProperty] private string _speechText = "0:00";
     [ObservableProperty] private int _segments;
     [ObservableProperty] private long _creditsUsed;
+    [ObservableProperty] private string _creditsLeftText = "—";
     [ObservableProperty] private string _lastPhraseText = "—";
     private DateTime? _lastSegmentAt;
     private int _lastSegments;
@@ -57,7 +58,10 @@ public sealed partial class TranslationViewModel : ObservableObject
         _client.StatusChanged += s => Dispatcher.UIThread.Post(() => ApplyStatus(s));
         _client.Started += () => Dispatcher.UIThread.Post(() => { IsRunning = true; IsBusy = false; SetMessage("Traduciendo en vivo", false); });
         _client.Stopped += (reason, err) => Dispatcher.UIThread.Post(() => OnStopped(reason, err));
-        _client.Error += e => Dispatcher.UIThread.Post(() => { IsBusy = false; SetMessage(e, true); });
+        // El servidor rechazó el inicio (sin créditos, desactivado, STT caído): cerrar el mic
+        // para que no parezca que la sesión quedó corriendo.
+        _client.Error += e => Dispatcher.UIThread.Post(async () => { IsBusy = false; if (!IsRunning) await StopCaptureAsync(); SetMessage(e, true); StartCommand.NotifyCanExecuteChanged(); });
+        _client.BalanceChanged += b => Dispatcher.UIThread.Post(() => CreditsLeftText = b.Unlimited ? "∞" : b.Available.ToString("N0"));
         ctx.Connection.HelloReceived += () => Dispatcher.UIThread.Post(RefreshFromServer);
         ctx.Connection.ModuleUpdated += name => { if (name == TranslationClient.Channel) Dispatcher.UIThread.Post(RefreshFromServer); };
         ctx.Connection.StateChanged += st => Dispatcher.UIThread.Post(() =>

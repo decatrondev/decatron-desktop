@@ -24,6 +24,8 @@ public sealed class LolClientWatcher : IAsyncDisposable
     private string _lastPhase = "";
     private string _lastChampSelectJson = "";
     private string _lastLobbyJson = "";
+    /// <summary>PUUID del cliente -> (nombre, tag). El lobby ya no trae el Riot ID de cada miembro y el servidor lo necesita para consultarlo en la API de Riot.</summary>
+    private readonly Dictionary<string, (string Name, string? Tag)> _riotIds = new();
     private string? _myPosition;
     private DateTime? _gameStartedAt;
     private bool _sentInGame, _sentEog;
@@ -119,6 +121,30 @@ public sealed class LolClientWatcher : IAsyncDisposable
         ClientChanged?.Invoke(connected, summoner);
     }
 
+    /// <summary>
+    /// El Riot ID (nombre#tag) de un jugador por su PUUID del cliente. Se guarda: el lobby se
+    /// revisa en cada tick y el nombre de alguien no cambia mientras está en él.
+    /// </summary>
+    private async Task<(string Name, string? Tag)?> RiotIdAsync(LcuClient lcu, string? puuid, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(puuid)) return null;
+        if (_riotIds.TryGetValue(puuid, out var hit)) return hit;
+        try
+        {
+            var s = await lcu.GetAsync($"/lol-summoner/v2/summoners/puuid/{puuid}", ct);
+            var name = s?["gameName"]?.GetValue<string>();
+            if (string.IsNullOrEmpty(name)) return null;
+            var id = (name, s?["tagLine"]?.GetValue<string>());
+            _riotIds[puuid] = id;
+            return id;
+        }
+        catch
+        {
+            // Sin nombre el servidor no puede consultarlo, pero el lobby se sigue mandando.
+            return null;
+        }
+    }
+
     private async Task TickAsync(CancellationToken ct)
     {
         var lcu = _lcu!;
@@ -144,11 +170,18 @@ public sealed class LolClientWatcher : IAsyncDisposable
             lobby = new JsonArray();
             foreach (var m in (l?["members"] as JsonArray)?.OfType<JsonObject>() ?? Enumerable.Empty<JsonObject>())
             {
+                var puuid = m["puuid"]?.GetValue<string>();
                 var name = m["gameName"]?.GetValue<string>();
+                var tag = m["gameTag"]?.GetValue<string>();
+                if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(tag))
+                {
+                    var id = await RiotIdAsync(lcu, puuid, ct);
+                    if (id != null) { name = id.Value.Name; tag = id.Value.Tag; }
+                }
                 if (string.IsNullOrEmpty(name)) name = m["summonerName"]?.GetValue<string>() ?? "";
                 lobby.Add(new JsonObject
                 {
-                    ["name"] = name, ["tag"] = m["gameTag"]?.GetValue<string>(), ["puuid"] = m["puuid"]?.GetValue<string>(),
+                    ["name"] = name, ["tag"] = tag, ["puuid"] = puuid,
                     ["isMe"] = m["puuid"]?.GetValue<string>() == localPuuid, ["isLeader"] = m["isLeader"]?.GetValue<bool>() ?? false,
                     ["position1"] = m["firstPositionPreference"]?.GetValue<string>(), ["position2"] = m["secondPositionPreference"]?.GetValue<string>(),
                 });

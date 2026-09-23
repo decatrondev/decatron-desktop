@@ -65,7 +65,15 @@ public sealed partial class LolCoachViewModel : ObservableObject
         _client.Error += e => Dispatcher.UIThread.Post(() => SetMessage(e, true));
         _client.Coach += m => Dispatcher.UIThread.Post(() =>
         {
-            var title = m.Kind switch { "pick" => "Pick / ban", "my_turn" => "¡Tu turno!", "final" => "Plan final", "postgame" => "Post-partida", _ => m.Kind };
+            var title = m.Kind switch
+            {
+                "pick" => "Pick / ban", "my_turn" => "¡Tu turno!", "final" => "Plan final", "postgame" => "Post-partida",
+                "briefing" => "Briefing", "lobby" => "Lobby", "tilt" => "Tilt check",
+                // El servidor avisa asi que el coach esta en pausa (sin creditos): va como mensaje del coach
+                // para que se vea donde el streamer ya esta mirando, no en una barra que nadie lee.
+                "notice" => "Aviso",
+                _ => m.Kind,
+            };
             if (m.Suggestion != null) title += $" → {m.Suggestion}";
             var details = string.Join("\n", new[] { m.Matchup, string.Join(" · ", new[] { m.Runes, m.Spells, m.Build }.Where(x => !string.IsNullOrWhiteSpace(x))) }
                 .Concat(m.Tips.Select(t => "• " + t)).Where(x => !string.IsNullOrWhiteSpace(x)));

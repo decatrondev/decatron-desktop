@@ -1,0 +1,76 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Decatron.Desktop.Modules.Downloads"
+             x:Class="Decatron.Desktop.Modules.Downloads.DownloadsView"
+             x:DataType="vm:DownloadsViewModel">
+
+  <ScrollViewer>
+    <StackPanel Margin="28,24" Spacing="18" MaxWidth="720" HorizontalAlignment="Left">
+
+      <StackPanel Spacing="4">
+        <TextBlock Text="Descargas" Classes="H1" />
+        <TextBlock Classes="Muted" TextWrapping="Wrap"
+                   Text="Baja videos y audio de YouTube (y cientos de sitios más) desde el dashboard: Overlays → Song Request → Descargas. Se descargan en esta PC, con tu conexión." />
+      </StackPanel>
+
+      <Border Classes="Card">
+        <StackPanel Spacing="10">
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <Ellipse Width="10" Height="10" VerticalAlignment="Center" Classes.On="{Binding ToolsReady}" Classes="StatusDot" />
+            <TextBlock Text="Herramientas" Classes="H2" />
+          </StackPanel>
+          <TextBlock Classes="Muted" TextWrapping="Wrap" Text="{Binding ToolsText}" />
+          <ProgressBar IsVisible="{Binding Preparing}" IsIndeterminate="{Binding PrepIndeterminate}" Value="{Binding PrepPercent}" Maximum="100" Height="6" />
+          <Border Padding="12,8" CornerRadius="8" Classes="Notice Error" IsVisible="{Binding ToolsError, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <TextBlock Text="{Binding ToolsError}" TextWrapping="Wrap" FontSize="13" />
+          </Border>
+          <TextBlock Classes="Muted" FontSize="12" TextWrapping="Wrap"
+                     Text="yt-dlp y ffmpeg se descargan una sola vez (unos 100 MB en Windows), se verifican con la firma SHA-256 de cada proyecto y yt-dlp se actualiza solo cada día." />
+          <Button Content="Preparar ahora" Command="{Binding PrepareToolsCommand}" IsVisible="{Binding !ToolsReady}" HorizontalAlignment="Left" />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="Card">
+        <StackPanel Spacing="10">
+          <TextBlock Text="Carpeta de destino" Classes="H2" />
+          <Grid ColumnDefinitions="*,Auto,Auto">
+            <TextBox Grid.Column="0" Text="{Binding Folder}" />
+            <Button Grid.Column="1" Margin="8,0,0,0" Content="Abrir" Command="{Binding OpenFolderCommand}" />
+            <Button Grid.Column="2" Margin="8,0,0,0" Content="Restablecer" Command="{Binding ResetFolderCommand}" ToolTip.Tip="Volver a Descargas\Decatron" />
+          </Grid>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="Card">
+        <StackPanel Spacing="10">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Text="Descargas recientes" Classes="H2" />
+            <Button Grid.Column="1" Content="Limpiar terminadas" Command="{Binding ClearFinishedCommand}" />
+          </Grid>
+          <TextBlock Classes="Muted" Text="Todavía no descargaste nada en esta sesión." IsVisible="{Binding !Jobs.Count}" />
+          <ItemsControl ItemsSource="{Binding Jobs}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:JobRow">
+                <Border Classes="Pill" Margin="0,0,0,8" Padding="12,10">
+                  <StackPanel Spacing="6">
+                    <Grid ColumnDefinitions="*,Auto,Auto">
+                      <StackPanel Spacing="2">
+                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding Detail}" Classes="Muted" FontSize="12" TextTrimming="CharacterEllipsis" />
+                      </StackPanel>
+                      <Button Grid.Column="1" Margin="8,0,0,0" Content="Mostrar" Command="{Binding OpenCommand}" IsVisible="{Binding IsDone}" VerticalAlignment="Center" />
+                      <Button Grid.Column="2" Margin="8,0,0,0" Content="Cancelar" Classes="Danger" Command="{Binding CancelCommand}" IsVisible="{Binding IsActive}" VerticalAlignment="Center" />
+                    </Grid>
+                    <ProgressBar IsVisible="{Binding IsActive}" IsIndeterminate="{Binding Indeterminate}" Value="{Binding Percent}" Maximum="100" Height="6" />
+                    <TextBlock Text="{Binding StateText}" FontSize="12" Classes="Muted" />
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

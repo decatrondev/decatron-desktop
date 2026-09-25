@@ -3,6 +3,7 @@ using Decatron.Desktop.Core.Audio;
 using Decatron.Desktop.Core.Connection;
 using Decatron.Desktop.Core.Linking;
 using Decatron.Desktop.Core.Settings;
+using Decatron.Desktop.Modules.Downloads;
 using Decatron.Desktop.Modules.LolCoach;
 using Decatron.Desktop.Modules.Translation;
 using Decatron.Desktop.Sdk;
@@ -44,6 +45,7 @@ public sealed class AppHost : IAsyncDisposable
         {
             new TranslationModule(),
             new LolCoachModule(),
+            new DownloadsModule(),
         };
     }
 

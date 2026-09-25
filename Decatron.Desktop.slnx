@@ -4,6 +4,7 @@
     <Project Path="src/Decatron.Desktop.Core/Decatron.Desktop.Core.csproj" />
     <Project Path="src/Decatron.Desktop.Modules.Translation/Decatron.Desktop.Modules.Translation.csproj" />
     <Project Path="src/Decatron.Desktop.Modules.LolCoach/Decatron.Desktop.Modules.LolCoach.csproj" />
+    <Project Path="src/Decatron.Desktop.Modules.Downloads/Decatron.Desktop.Modules.Downloads.csproj" />
     <Project Path="src/Decatron.Desktop/Decatron.Desktop.csproj" />
   </Folder>
   <Folder Name="/tests/">

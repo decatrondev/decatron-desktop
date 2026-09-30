@@ -13,6 +13,14 @@
                    Text="Baja videos y audio de YouTube (y cientos de sitios más) desde el dashboard: Overlays → Song Request → Descargas. Se descargan en esta PC, con tu conexión." />
       </StackPanel>
 
+      <Border Classes="Card" IsVisible="{Binding ImportVisible}">
+        <StackPanel Spacing="8">
+          <TextBlock Text="Importando una playlist" Classes="H2" />
+          <TextBlock Classes="Muted" TextWrapping="Wrap" Text="{Binding ImportText}" />
+          <ProgressBar Value="{Binding ImportPercent}" Maximum="100" Height="6" IsVisible="{Binding ImportRunning}" />
+        </StackPanel>
+      </Border>
+
       <Border Classes="Card">
         <StackPanel Spacing="10">
           <StackPanel Orientation="Horizontal" Spacing="10">

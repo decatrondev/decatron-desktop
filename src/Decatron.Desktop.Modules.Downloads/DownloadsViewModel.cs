@@ -16,6 +16,7 @@ public sealed partial class DownloadsViewModel : ObservableObject
     private ModuleContext? _ctx;
     private ToolManager? _tools;
     private DownloadsClient? _client;
+    private SongImportClient? _import;
 
     [ObservableProperty] private string _folder = DefaultFolder;
     [ObservableProperty] private bool _toolsReady;
@@ -24,6 +25,11 @@ public sealed partial class DownloadsViewModel : ObservableObject
     [ObservableProperty] private string? _toolsError;
     [ObservableProperty] private double _prepPercent;
     [ObservableProperty] private bool _prepIndeterminate = true;
+    // Importar playlists de Spotify/Deezer/Apple Music: la app busca cada canción en YouTube
+    [ObservableProperty] private bool _importVisible;
+    [ObservableProperty] private bool _importRunning;
+    [ObservableProperty] private string _importText = "";
+    [ObservableProperty] private double _importPercent;
 
     public ObservableCollection<JobRow> Jobs { get; } = new();
 
@@ -40,12 +46,28 @@ public sealed partial class DownloadsViewModel : ObservableObject
         _client = new DownloadsClient(ctx.Connection, _tools, () => Folder, log);
         _client.JobChanged += j => Dispatcher.UIThread.Post(() => ApplyJob(j));
         _client.Cleared += () => Dispatcher.UIThread.Post(() => { foreach (var row in Jobs.Where(r => r.IsFinished).ToList()) Jobs.Remove(row); });
+        _import = new SongImportClient(ctx.Connection, _tools, log);
+        _import.ProgressChanged += p => Dispatcher.UIThread.Post(() => ApplyImport(p));
 
         // Si ya estaban instaladas, se revisa la actualización diaria de yt-dlp; si no, se espera al primer uso
         if (File.Exists(_tools.YtDlpPath)) _ = _tools.EnsureAsync();
     }
 
-    public void Shutdown() => _client?.Dispose();
+    public void Shutdown()
+    {
+        _client?.Dispose();
+        _import?.Dispose();
+    }
+
+    private void ApplyImport(ImportProgress p)
+    {
+        ImportVisible = true;
+        ImportRunning = p.Running;
+        ImportPercent = p.Total == 0 ? 0 : p.Done * 100.0 / p.Total;
+        ImportText = p.Running
+            ? $"Buscando en YouTube: {p.Done} de {p.Total} ({p.Found} encontradas). El avance se ve en el dashboard; no cierres la app."
+            : $"Listo: {p.Found} de {p.Total} encontradas. El resultado está en el dashboard (Song Request → Playlists).";
+    }
 
     partial void OnFolderChanged(string value)
     {

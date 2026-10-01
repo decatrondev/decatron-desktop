@@ -10,13 +10,20 @@ namespace Decatron.Desktop.Modules.Downloads;
 public sealed record ImportProgress(string JobId, int Total, int Done, int Found, bool Running);
 
 /// <summary>
-/// Canal <c>songimport</c>: el servidor lee una playlist de Spotify, Deezer o Apple Music y le pide a la app que
-/// busque cada canción en YouTube. Acá se busca con yt-dlp desde la PC del streamer (con su IP YouTube no
-/// bloquea) y se devuelve el video elegido por <see cref="SongMatcher"/>; el servidor lo revisa y lo guarda.
+/// Canal <c>songimport</c>: todo lo que toca a YouTube al importar playlists pasa por acá, con la IP del
+/// streamer, para que el servidor no le haga consultas a YouTube (se las bloquea).
+/// <list type="bullet">
+/// <item><c>match</c>: el servidor leyó una playlist de Spotify, Deezer o Apple Music; acá se busca cada
+/// canción en YouTube y se devuelve el video elegido por <see cref="SongMatcher"/>.</item>
+/// <item><c>list</c>: una playlist de YouTube; acá se lee (lista plana de yt-dlp) y se devuelven sus videos.</item>
+/// </list>
 /// </summary>
 public sealed class SongImportClient : IDisposable
 {
     public const string Channel = "songimport";
+    /// <summary>1: buscar canciones. 2: también leer playlists de YouTube.</summary>
+    public const int ProtocolVersion = 2;
+    public const int MaxListItems = 5000;
     private const int MaxParallel = 2;
     private static readonly TimeSpan SearchTimeout = TimeSpan.FromSeconds(30);
 
@@ -35,8 +42,8 @@ public sealed class SongImportClient : IDisposable
         _log = log;
         _sub = conn.Subscribe(Channel, OnMessage);
         // Anuncia que esta versión sabe buscar (las viejas no lo dicen y el dashboard pide actualizar)
-        conn.StateChanged += st => { if (st == ConnectionState.Connected) _ = SafeSend("ready", new { version = 1 }); };
-        conn.HelloReceived += () => _ = SafeSend("ready", new { version = 1 });
+        conn.StateChanged += st => { if (st == ConnectionState.Connected) _ = SafeSend("ready", new { version = ProtocolVersion }); };
+        conn.HelloReceived += () => _ = SafeSend("ready", new { version = ProtocolVersion });
     }
 
     private void OnMessage(string type, JsonNode msg)
@@ -44,6 +51,7 @@ public sealed class SongImportClient : IDisposable
         switch (type)
         {
             case "match": _ = RunAsync(msg); break;
+            case "list": _ = ListAsync(msg); break;
             case "cancel":
                 if (msg["jobId"]?.GetValue<string>() is { } id && _jobs.TryGetValue(id, out var cts)) cts.Cancel();
                 break;
@@ -103,6 +111,48 @@ public sealed class SongImportClient : IDisposable
             ProgressChanged?.Invoke(new ImportProgress(jobId, total, done, found, false));
             _jobs.TryRemove(jobId, out _);
             cts.Dispose();
+        }
+    }
+
+    /// <summary>Lee una playlist de YouTube y devuelve sus videos (sin los privados, borrados ni en vivo).</summary>
+    private async Task ListAsync(JsonNode msg)
+    {
+        var jobId = msg["jobId"]?.GetValue<string>();
+        var url = msg["url"]?.GetValue<string>();
+        if (string.IsNullOrWhiteSpace(jobId) || jobId.Length > 64) return;
+        var max = Math.Clamp(msg["max"]?.GetValue<int>() ?? MaxListItems, 1, MaxListItems);
+        if (!SongMatcher.IsYouTubePlaylist(url))
+        {
+            await SafeSend("listed", new { jobId, ok = false, error = "not_a_playlist" });
+            return;
+        }
+        ProgressChanged?.Invoke(new ImportProgress(jobId, 0, 0, 0, true));
+        try
+        {
+            if (!await _tools.EnsureAsync())
+            {
+                await SafeSend("listed", new { jobId, ok = false, error = "tools_unavailable" });
+                return;
+            }
+            var (code, stdout, stderr) = await ToolManager.RunAsync(_tools.YtDlpPath,
+                new[] { "--flat-playlist", "--dump-single-json", "--no-warnings", "--playlist-end", max.ToString(), "--", url! },
+                TimeSpan.FromMinutes(3), CancellationToken.None);
+            var (name, entries) = code == 0 ? SongMatcher.ParsePlaylist(stdout) : (null, new List<SongCandidate>());
+            await SafeSend("listed", entries.Count == 0
+                ? new { jobId, ok = false, error = code == 0 ? "empty" : "list_failed" } as object
+                : new
+                {
+                    jobId, ok = true, name,
+                    items = entries.Select(e => new { videoId = e.Id, title = e.Title, channel = e.Channel, channelId = e.ChannelId, duration = e.DurationSeconds })
+                });
+            ProgressChanged?.Invoke(new ImportProgress(jobId, entries.Count, entries.Count, entries.Count, false));
+            if (code != 0) _log.LogWarning("no se pudo leer la playlist: {Err}", stderr.Length > 300 ? stderr[..300] : stderr);
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "no se pudo leer la playlist {Url}", url);
+            await SafeSend("listed", new { jobId, ok = false, error = "list_failed" });
+            ProgressChanged?.Invoke(new ImportProgress(jobId, 0, 0, 0, false));
         }
     }
 

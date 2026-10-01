@@ -59,3 +59,32 @@ public class SongMatcherTests
         Assert.Equal(new[] { "aaaaaaaaaaa" }, SongMatcher.MusicCandidates(results, song).Select(c => c.Id));
     }
 }
+
+public class YouTubePlaylistTests
+{
+    [Theory]
+    [InlineData("https://www.youtube.com/playlist?list=PLx0sYbCqOb8TBPRdmBHs5Iftvv9TPboYG", true)]
+    [InlineData("https://music.youtube.com/playlist?list=RDCLAK5uy_kmPRjHDECIcuVwnKsx2Ng7fyNgFKWNJFs", true)]
+    [InlineData("https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=PLx0sYbCqOb8TBPRdmBHs5Iftvv9TPboYG", true)]
+    [InlineData("https://www.youtube.com/watch?v=dQw4w9WgXcQ", false)]
+    [InlineData("https://evil.com/playlist?list=PLx0sYbCqOb8TBPRdmBHs5Iftvv9TPboYG", false)]
+    [InlineData("http://www.youtube.com/playlist?list=PLx0sYbCqOb8TBPRdmBHs5Iftvv9TPboYG", false)]
+    public void IsYouTubePlaylist(string url, bool expected) => Assert.Equal(expected, SongMatcher.IsYouTubePlaylist(url));
+
+    [Fact]
+    public void ParsePlaylist_skips_private_deleted_and_live()
+    {
+        var json = """
+        {"title":"Mi lista","entries":[
+          {"id":"aaaaaaaaaaa","title":"Buena","channel":"Artista - Topic","channel_id":"UC1","duration":200},
+          {"id":"bbbbbbbbbbb","title":"[Private video]","duration":null},
+          {"id":"ccccccccccc","title":"[Deleted video]"},
+          {"id":"ddddddddddd","title":"En vivo","channel":"X"}
+        ]}
+        """;
+        var (name, entries) = SongMatcher.ParsePlaylist(json);
+        Assert.Equal("Mi lista", name);
+        Assert.Single(entries);
+        Assert.Equal("UC1", entries[0].ChannelId);
+    }
+}

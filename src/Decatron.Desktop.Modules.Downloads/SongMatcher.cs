@@ -65,6 +65,45 @@ public static class SongMatcher
         return list;
     }
 
+    private static readonly Regex PlaylistIdRegex = new(@"[?&]list=([A-Za-z0-9_-]{10,64})", RegexOptions.Compiled);
+
+    /// <summary>Un link de playlist de YouTube o YouTube Music (con list=).</summary>
+    public static bool IsYouTubePlaylist(string? url)
+    {
+        if (url == null || !Uri.TryCreate(url.Trim(), UriKind.Absolute, out var uri) || uri.Scheme != "https") return false;
+        var host = uri.Host.ToLowerInvariant();
+        return (host is "www.youtube.com" or "youtube.com" or "m.youtube.com" or "music.youtube.com" or "youtu.be")
+               && PlaylistIdRegex.IsMatch(uri.Query);
+    }
+
+    /// <summary>
+    /// La salida de <c>yt-dlp --flat-playlist --dump-single-json</c>: nombre de la playlist y sus videos.
+    /// Se descartan los que no sirven para sonar: privados, borrados y sin duración (en vivo o estreno).
+    /// </summary>
+    public static (string? Name, List<SongCandidate> Entries) ParsePlaylist(string json)
+    {
+        var list = new List<SongCandidate>();
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            var r = doc.RootElement;
+            if (r.TryGetProperty("entries", out var entries) && entries.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var e in entries.EnumerateArray())
+                {
+                    var id = Str(e, "id");
+                    var title = Str(e, "title") ?? "";
+                    if (id == null || !VideoIdRegex.IsMatch(id) || title is "[Private video]" or "[Deleted video]") continue;
+                    int? duration = e.TryGetProperty("duration", out var d) && d.ValueKind == JsonValueKind.Number ? (int)Math.Round(d.GetDouble()) : null;
+                    if (duration is not > 0) continue;
+                    list.Add(new SongCandidate(id, title, Str(e, "channel") ?? Str(e, "uploader") ?? "", Str(e, "channel_id"), duration));
+                }
+            }
+            return (Str(r, "title"), list);
+        }
+        catch (JsonException) { return (null, list); }
+    }
+
     /// <summary>Los primeros resultados de YouTube Music cuyo título coincide con el pedido (a verificar por duración).</summary>
     public static IEnumerable<SongCandidate> MusicCandidates(IEnumerable<SongCandidate> results, SongQuery song)
     {

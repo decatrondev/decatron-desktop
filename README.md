@@ -1,73 +1,87 @@
 # Decatron Desktop
 
-App de escritorio de [Decatron](https://decatron.net): el compañero local del bot para lo que
-solo puede hacerse en la PC del streamer. Se vincula una vez con el canal y desde ahí carga
-módulos.
+[Español](README.es.md)
 
-| Módulo | Estado | Qué hace |
+Desktop companion app for [Decatron](https://decatron.net): the local side of the bot, for everything
+that can only be done on the streamer's PC. You link it once to your channel and it loads modules from
+there.
+
+| Module | Status | What it does |
 |---|---|---|
-| **Traducción en vivo** | ✅ v0.1 | Captura el micrófono y lo manda al servidor, que transcribe, traduce y sintetiza. Cada espectador elige en qué idioma escuchar el stream desde la extensión de Decatron, sin afectar a los demás. |
-| **Coach de LoL** | ✅ | Lee el cliente de LoL (solo lectura: lobby, selección de campeón, partida, resultado), lo manda al overlay al instante y muestra/lee en voz alta lo que dice el coach con IA (`LOL_COACH_PLAN.md` en el repo del bot). |
-| **Descargas** | ✅ v0.0.17 | Descarga video o audio de YouTube, Spotify (se busca la misma canción en YouTube) y cientos de sitios, pedido desde el dashboard (Song Request → Descargas). Corre yt-dlp en esta PC, con la IP del streamer, porque YouTube bloquea a los servidores. yt-dlp y ffmpeg se bajan la primera vez, se verifican con su SHA-256 y yt-dlp se actualiza cada día. Calidades, MP4/WebM/MP3/M4A/Opus/WAV, recorte, miniatura y subtítulos. |
+| **Live translation** | ✅ | Captures the microphone and sends it to the server, which transcribes, translates and synthesizes it. Each viewer picks the language to hear the stream in from the Decatron browser extension, without affecting anyone else. |
+| **LoL coach** | ✅ | Reads the League of Legends client (read-only: lobby, champion select, game, result), sends it to the overlay instantly and shows or reads aloud what the AI coach says. |
+| **Downloads** | ✅ | Downloads video or audio from YouTube, Spotify (the same song is searched on YouTube) and hundreds of other sites, requested from the dashboard (Song Request → Downloads). It runs yt-dlp on this PC, with the streamer's IP, because YouTube blocks servers. yt-dlp and ffmpeg are downloaded the first time, verified with SHA-256, and yt-dlp is updated every day. Qualities, MP4/WebM/MP3/M4A/Opus/WAV, trimming, thumbnail and subtitles. |
+| **Playlist import** | ✅ | Part of the Downloads module. To import a playlist into Song Request, the server sends the songs of a Spotify, Deezer or Apple Music playlist and the app searches each one on YouTube with yt-dlp (YouTube Music checking the duration, no covers or live versions, preferring the official audio); YouTube playlists are read by the app itself (no private, deleted or live videos). All YouTube queries use the streamer's IP, so the server never queries YouTube. |
 
-## Cómo funciona
+User guides (what each module does and how to use it): <https://decatron.net/docs/translation> and
+the Song Request section of the manual at <https://decatron.net/docs>.
+
+## How it works
 
 ```
 ┌─────────────────────┐   wss://decatron.net/api/desktop/ws   ┌──────────────────────┐
-│ Decatron Desktop    │ ────── un solo WebSocket ───────────► │ Backend Decatron     │
-│  shell (Avalonia)   │   texto JSON {ch, type, …}            │  IDesktopChannel por │
-│  ├─ módulo A        │   binario [canal][carga]              │  módulo              │
-│  └─ módulo B        │ ◄──────────────────────────────────── │                      │
+│ Decatron Desktop    │ ────── a single WebSocket ──────────► │ Decatron backend     │
+│  shell (Avalonia)   │   JSON text {ch, type, …}             │  one IDesktopChannel │
+│  ├─ module A        │   binary [channel][payload]           │  per module          │
+│  └─ module B        │ ◄──────────────────────────────────── │                      │
 └─────────────────────┘                                       └──────────────────────┘
 ```
 
-- **Vinculación:** el dashboard genera un código de 8 caracteres (vale 10 min, un solo uso); la
-  app lo canjea por un token propio de bajo privilegio que solo abre este WebSocket. En Windows
-  el token se guarda cifrado con DPAPI.
-- **Conexión:** reconecta sola con backoff (1 s → 30 s), mide latencia con ping y reparte los
-  mensajes a cada módulo por su canal.
-- **Audio (traducción):** WASAPI en modo compartido (no le quita el mic a OBS), normalizado a
-  PCM 16 kHz mono en frames de 20 ms, con puerta de voz para no mandar silencio.
+- **Linking:** the dashboard (Settings → Integrations) generates an 8-character code (valid for
+  10 minutes, single use); the app exchanges it for its own low-privilege token that can only open this
+  WebSocket. On Windows the token is stored encrypted with DPAPI. Linked PCs are listed in the dashboard
+  and can be unlinked from there.
+- **Connection:** it reconnects on its own with backoff (1 s → 30 s), measures latency with a ping and
+  routes each message to its module by channel. If the connection drops during a translation session, the
+  session is cut and has to be started again.
+- **Audio (translation):** WASAPI in shared mode (it does not take the microphone away from OBS),
+  normalized to 16 kHz mono PCM in 20 ms frames. Audio is sent continuously while the session is active so
+  the server can close each phrase properly; the voice gate only drives the level meter on screen.
 
-## Estructura
+## Structure
 
 ```
 src/
-  Decatron.Desktop.Sdk/                  contratos: IModule, IDesktopConnection, IAudioCapture
-  Decatron.Desktop.Core/                 conexión WS, vinculación, ajustes/secretos, captura de audio
-  Decatron.Desktop.Modules.Translation/  primer módulo
-  Decatron.Desktop.Modules.LolCoach/     coach de LoL: LcuLocator (lockfile) + LcuClient (GET al LCU) + LolClientWatcher (fases)
-  Decatron.Desktop.Modules.Downloads/    descargas: ToolManager (yt-dlp/ffmpeg verificados) + DownloadRunner + DownloadsClient (canal downloads)
-  Decatron.Desktop/                      shell Avalonia: chrome propio, barra de módulos, Velopack
+  Decatron.Desktop.Sdk/                  contracts: IModule, IDesktopConnection, IAudioCapture
+  Decatron.Desktop.Core/                 WS connection, linking, settings/secrets, audio capture
+  Decatron.Desktop.Modules.Translation/  live translation
+  Decatron.Desktop.Modules.LolCoach/     LoL coach: LcuLocator (lockfile) + LcuClient (GET to the LCU) + LolClientWatcher (phases)
+  Decatron.Desktop.Modules.Downloads/    downloads and playlist import: ToolManager (verified yt-dlp/ffmpeg) + DownloadRunner + DownloadsClient + SongImportClient
+  Decatron.Desktop/                      Avalonia shell: custom chrome, module bar, Velopack
+  Decatron.Desktop.Installer/            Windows bootstrap installer (see Publishing)
 tests/
-  Decatron.Desktop.Tests/                servidor falso + tests de conexión, canal, audio y vinculación
+  Decatron.Desktop.Tests/                fake server + connection, channel, audio and linking tests
 ```
 
-## Desarrollo
+The module rules (a module never references another module, one WebSocket, no native dialogs) are in
+[CONVENTIONS.md](CONVENTIONS.md).
+
+## Development
 
 ```bash
 dotnet build
 dotnet test
-dotnet run --project src/Decatron.Desktop      # apunta a https://decatron.net
+dotnet run --project src/Decatron.Desktop      # points to https://decatron.net
 DECATRON_API=https://staging.decatron.net dotnet run --project src/Decatron.Desktop
 ```
 
-Requiere .NET 10. La captura de micrófono está implementada para Windows; en macOS/Linux la app
-compila y se vincula, pero el módulo de traducción avisa que el mic aún no está soportado.
+Requires .NET 10. Microphone capture is implemented for Windows; on macOS and Linux the app builds and
+links, but the translation module warns that the microphone is not supported yet.
 
-## Publicar
+## Publishing
 
-Un tag `vX.Y.Z` dispara `release.yml`: publica self-contained por plataforma, empaqueta con
-Velopack por canal (`win`, `linux`, `osx`) y sube todo a un GitHub Release. La app instalada
-revisa ese release al arrancar y cada 6 h, descarga en segundo plano y aplica al cerrar.
+A `vX.Y.Z` tag triggers `release.yml`: it publishes self-contained per platform, packages with Velopack
+per channel (`win`, `linux`, `osx`) and uploads everything to a GitHub Release. The installed app checks
+that release at startup and every 6 h, downloads in the background and applies on close.
 
-En Windows el `DecatronDesktop-Setup.exe` publicado es `src/Decatron.Desktop.Installer`: un
-bootstrap con nuestra ventana que embebe el Setup real de Velopack y lo corre en silencio, para
-no mostrar el instalador genérico. Está fuera del `.slnx` porque solo tiene sentido en el
-pipeline (necesita el `SetupInner.exe` que genera `vpk pack`).
+On Windows the published `DecatronDesktop-Setup.exe` is `src/Decatron.Desktop.Installer`: a bootstrap
+with our own window that embeds the real Velopack Setup and runs it silently, to avoid showing the
+generic installer. It lives outside the `.slnx` because it only makes sense in the pipeline (it needs the
+`SetupInner.exe` produced by `vpk pack`).
 
 ## Backend
 
-El servidor vive en el repo del bot (`decatrondev/decatron`): `DesktopWsMiddleware`,
-`DesktopController` y un `IDesktopChannel` por módulo. El plan completo de la traducción en
-vivo está en el panel de admin del dashboard (`dev-docs/plans/REALTIME_TRANSLATION_PLAN.md`).
+The server lives in the bot repository ([`decatrondev/decatron`](https://github.com/decatrondev/decatron)):
+`DesktopWsMiddleware`, `DesktopController` and one `IDesktopChannel` per module. The architecture notes
+are in `docs/ARCHITECTURE.md` there (sections *Live translation pipeline* and *Real-time
+Communication*).
